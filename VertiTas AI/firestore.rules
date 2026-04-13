@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: analysisLogs
+    // Document ID: auto-generated
+    // Fields:
+    //   - userId: string (required) - The ID of the user who performed the analysis
+    //   - inputText: string (required) - The text or URL that was analyzed
+    //   - label: string (required, enum: 'REAL', 'FAKE') - The result label
+    //   - confidence: number (required) - The confidence score (0-100)
+    //   - createdAt: string (required) - ISO 8601 date string
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isValidAnalysisLog(data) {
+      return hasOnlyAllowedFields(['userId', 'inputText', 'label', 'confidence', 'createdAt']) &&
+             data.userId is string && data.userId.size() > 0 && data.userId.size() < 100 &&
+             data.inputText is string && data.inputText.size() > 0 && data.inputText.size() < 100000 &&
+             data.label in ['REAL', 'FAKE'] &&
+             data.confidence is number && data.confidence >= 0 && data.confidence <= 100 &&
+             isValidDateString(data.createdAt);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /analysisLogs/{logId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                    isValidAnalysisLog(request.resource.data) && 
+                    request.resource.data.userId == request.auth.uid;
+      allow update: if false; // Logs are immutable
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

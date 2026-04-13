@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "AnalysisLog": {
+      "title": "AnalysisLog",
+      "description": "A log of a fake news detection analysis performed by a user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who performed the analysis."
+        },
+        "inputText": {
+          "type": "string",
+          "description": "The text or URL that was analyzed."
+        },
+        "label": {
+          "type": "string",
+          "enum": ["REAL", "FAKE"],
+          "description": "The result label."
+        },
+        "confidence": {
+          "type": "number",
+          "description": "The confidence score (0-100)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the analysis was performed."
+        }
+      },
+      "required": ["userId", "inputText", "label", "confidence", "createdAt"]
+    }
+  },
+  "firestore": {
+    "analysisLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/AnalysisLog"
+      },
+      "description": "Collection of analysis logs."
+    }
+  }
+}
